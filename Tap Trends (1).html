@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tap Trends</title>
+<style>
+:root{
+  --bg:#0a0a14; --bg2:#12081f; --panel:#161022; --panel2:#1d1530;
+  --txt:#eee6ff; --dim:#8b7fa8; --accent:#00e5c7; --accent2:#ff2fb0;
+  --common:#9aa0ab; --uncommon:#4ade80; --rare:#3fb0ff; --epic:#b569ff; --mythic:#ff5fae; --legendary:#ffc93f;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ } }
+*{box-sizing:border-box;}
+html,body{height:100%; margin:0;}
+body{
+  background:radial-gradient(circle at 50% -10%, #241238 0%, var(--bg) 55%), var(--bg);
+  color:var(--txt); font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  overflow-x:hidden; padding-bottom:calc(70px + env(safe-area-inset-bottom,0px));
+  min-height:100%;
+}
+h1,h2,h3{margin:0 0 8px;}
+button{font-family:inherit; cursor:pointer; border:none;}
+.screen{display:none; padding:16px; max-width:520px; margin:0 auto; animation:fadein .2s;}
+.screen.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+/* TOP BAR */
+.topbar{display:flex; gap:8px; flex-wrap:wrap; padding:10px 12px; position:sticky; top:0; z-index:5;
+  background:rgba(10,10,20,.85); backdrop-filter:blur(6px); border-bottom:1px solid #2a1f40;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));}
+.stat{background:var(--panel); border-radius:10px; padding:5px 10px; font-size:.8rem; display:flex; gap:5px; align-items:center; flex:1; min-width:74px; justify-content:center;}
+.stat b{font-size:.85rem;}
+
+/* HOME */
+.home{text-align:center;}
+.combo{font-size:1.1rem; color:var(--accent2); margin:6px 0 14px; min-height:1.4em;}
+.tapzone{position:relative; display:flex; justify-content:center; padding:20px 0;}
+#tapbtn{
+  width:220px; height:220px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #2be6cf, #009e8a 70%);
+  box-shadow:0 0 40px 6px rgba(0,229,199,.45), inset 0 -8px 20px rgba(0,0,0,.3);
+  color:#04231f; font-size:2.4rem; font-weight:800; letter-spacing:1px;
+  transition:transform .08s;
+}
+#tapbtn:active{transform:scale(.93);}
+.fx{position:absolute; pointer-events:none; font-weight:700; animation:float 1s ease-out forwards;}
+@keyframes float{to{transform:translateY(-70px); opacity:0;}}
+.particle{position:absolute; width:6px; height:6px; border-radius:50%; background:var(--accent); pointer-events:none; animation:pop .5s ease-out forwards;}
+@keyframes pop{to{transform:translate(var(--dx),var(--dy)); opacity:0;}}
+.quickrow{display:flex; gap:8px; margin-top:18px;}
+.quickrow button{flex:1; background:var(--panel2); color:var(--txt); padding:12px 4px; border-radius:12px; font-size:.85rem;}
+
+/* NAV */
+nav{position:fixed; bottom:0; left:0; right:0; display:flex; background:#0d0818; border-top:1px solid #2a1f40; z-index:10;
+  padding-bottom:env(safe-area-inset-bottom,0px);}
+nav button{flex:1; background:none; color:var(--dim); padding:10px 2px 8px; font-size:.65rem; display:flex; flex-direction:column; align-items:center; gap:2px;}
+nav button.active{color:var(--accent);}
+nav button span{font-size:1.15rem;}
+
+/* CARDS / GENERIC */
+.card{background:var(--panel); border-radius:14px; padding:14px; margin-bottom:12px; border:1px solid #2a1f40;}
+.btn{background:linear-gradient(135deg,var(--accent),#00a89a); color:#012; padding:10px 14px; border-radius:10px; font-weight:700; font-size:.85rem;}
+.btn:disabled{opacity:.4;}
+.btn.pink{background:linear-gradient(135deg,var(--accent2),#a3006b); color:#fff;}
+.row{display:flex; justify-content:space-between; align-items:center; gap:8px;}
+
+/* BOXES */
+.boxgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.boxcard{background:var(--panel); border-radius:14px; padding:12px; text-align:center; border:1px solid #2a1f40;}
+.boxcard .icon{font-size:2.4rem; margin-bottom:4px;}
+.boxcard .odds{font-size:.65rem; color:var(--dim); margin:6px 0; line-height:1.5;}
+.boxcard.mystery{grid-column:1/-1; background:linear-gradient(135deg,#2a1140,#160a26); border-color:var(--legendary);}
+
+/* COLLECTION */
+.rarity-head{display:flex; align-items:center; gap:8px; margin:16px 0 8px; font-size:.95rem;}
+.grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+.trend{background:var(--panel); border-radius:12px; padding:10px 6px; text-align:center; font-size:.72rem; border:1px solid #2a1f40; position:relative;}
+.trend.locked::after{content:"🔒"; position:absolute; top:3px; right:5px; font-size:.6rem;}
+.trend .ic{font-size:1.5rem;}
+.trend .qty{color:var(--dim); font-size:.65rem;}
+.trend.undisc{opacity:.35;}
+
+/* UPGRADES */
+.up-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #241a38;}
+.up-row:last-child{border:none;}
+
+/* BOX OPEN OVERLAY */
+#overlay{position:fixed; inset:0; background:rgba(4,2,10,.92); display:none; align-items:center; justify-content:center; flex-direction:column; z-index:50; text-align:center; padding:20px;}
+#overlay.show{display:flex;}
+#ob{font-size:5rem; transition:transform .1s;}
+#oname{font-size:1.4rem; font-weight:800; margin-top:14px; min-height:1.4em;}
+#orar{font-size:.9rem; letter-spacing:2px; text-transform:uppercase; margin-top:4px;}
+.shake{animation:shake .3s infinite;}
+@keyframes shake{0%,100%{transform:rotate(0)} 25%{transform:rotate(-6deg)} 75%{transform:rotate(6deg)}}
+.legendburst{position:absolute; inset:0; background:radial-gradient(circle, rgba(255,201,63,.35), transparent 60%); pointer-events:none;}
+
+.pitybar{background:#241a38; border-radius:8px; height:8px; overflow:hidden; margin-top:6px;}
+.pitybar div{height:100%; background:var(--accent2);}
+
+.toast{position:fixed; top:calc(60px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); background:#1d1530; border:1px solid var(--accent); padding:8px 16px; border-radius:10px; font-size:.8rem; z-index:60; opacity:0; transition:opacity .3s;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="stat">🪙 <b id="s-coins">0</b></div>
+  <div class="stat">💎 <b id="s-gems">0</b></div>
+  <div class="stat">👆 <b id="s-taps">0</b></div>
+  <div class="stat">🍀 <b id="s-luck">1</b></div>
+</div>
+
+<!-- HOME -->
+<div class="screen active home" id="scr-home">
+  <div class="combo" id="comboText">Combo x1.0</div>
+  <div class="tapzone"><button id="tapbtn">TAP</button></div>
+  <div class="card row"><span>Pity</span><b id="pityText">0 / 100</b></div>
+  <div class="pitybar"><div id="pityFill" style="width:0%"></div></div>
+  <div class="quickrow">
+    <button onclick="go('boxes')">📦 Boxes</button>
+    <button onclick="go('collection')">📚 Collection</button>
+    <button onclick="go('upgrades')">⬆️ Upgrades</button>
+  </div>
+</div>
+
+<!-- BOXES -->
+<div class="screen" id="scr-boxes">
+  <h2>📦 Mystery Boxes</h2>
+  <div class="boxgrid" id="boxList"></div>
+</div>
+
+<!-- COLLECTION -->
+<div class="screen" id="scr-collection">
+  <h2>📚 Collection</h2>
+  <div class="card row"><span>Discovered</span><b id="colProgress">0 / 0</b></div>
+  <div id="colList"></div>
+</div>
+
+<!-- UPGRADES -->
+<div class="screen" id="scr-upgrades">
+  <h2>⬆️ Upgrades</h2>
+  <div class="card" id="upList"></div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="scr-profile">
+  <h2>👤 Profile</h2>
+  <div class="card" id="profileCard"></div>
+  <div class="card">
+    <div class="row"><span>Sound</span><button class="btn" id="soundToggle" onclick="toggleSound()">ON</button></div>
+  </div>
+  <div class="card">
+    <button class="btn pink" style="width:100%" onclick="resetSave()">Reset Save</button>
+  </div>
+</div>
+
+<nav>
+  <button class="navbtn active" data-s="home" onclick="go('home')"><span>🏠</span>Home</button>
+  <button class="navbtn" data-s="boxes" onclick="go('boxes')"><span>📦</span>Boxes</button>
+  <button class="navbtn" data-s="collection" onclick="go('collection')"><span>📚</span>Collection</button>
+  <button class="navbtn" data-s="upgrades" onclick="go('upgrades')"><span>⬆️</span>Upgrades</button>
+  <button class="navbtn" data-s="profile" onclick="go('profile')"><span>👤</span>Profile</button>
+</nav>
+
+<div id="overlay">
+  <div class="legendburst" id="burst" style="display:none"></div>
+  <div id="ob">🎁</div>
+  <div id="orar"></div>
+  <div id="oname"></div>
+  <button class="btn" id="collectBtn" style="margin-top:20px; display:none;" onclick="closeOverlay()">COLLECT</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- DATA ---------- */
+const RARITIES = ["legendary","mythic","epic","rare","uncommon","common"];
+const RCFG = {
+  legendary:{label:"👑 Legendary", color:"var(--legendary)", value:5000, icon:"👑"},
+  mythic:{label:"🔮 Mythic", color:"var(--mythic)", value:1200, icon:"🔮"},
+  epic:{label:"💜 Epic", color:"var(--epic)", value:350, icon:"💜"},
+  rare:{label:"🔵 Rare", color:"var(--rare)", value:90, icon:"🔵"},
+  uncommon:{label:"🟢 Uncommon", color:"var(--uncommon)", value:25, icon:"🟢"},
+  common:{label:"⚪ Common", color:"var(--common)", value:5, icon:"⚪"}
+};
+const TREND_NAMES = {
+  legendary:["67","Mega 67","Secret","Ultra Sigma","Golden Aura","Infinite Rizz","God Mode","Cosmic 67"],
+  mythic:["Sigma","GOAT","Brainrot King","Cosmic Rizz","Gigachad","Ultra Aura","Chad Mode","Supreme Sigma"],
+  epic:["Rizz","Skibidi","Aura","Fanum Tax","Ohio","Grimace","Mewing","W Aura"],
+  rare:["Stone Face","W","Skull","Sus","NPC","Bro","Drip","Based","No Cap","Cooked"],
+  uncommon:["Pro","LOL","GG","Chad","Bruh","Sheesh","Savage","Troll","Vibing","Pog"],
+  common:["L","Noob","Nice","Wow","Cool","Oof","Yeet","XD","GG EZ","Bro Moment"]
+};
+const TRENDS = [];
+RARITIES.forEach(r=>TREND_NAMES[r].forEach(n=>TRENDS.push({id:r+"_"+n, name:n, rarity:r})));
+
+const BOXES = [
+  {id:"free", name:"Free Box", icon:"🎁", cost:0, costLabel:"FREE", odds:{common:69.9,uncommon:20,rare:8,epic:2,mythic:0,legendary:0.1}},
+  {id:"basic", name:"Basic Box", icon:"📦", cost:1000, costLabel:"1,000 Coins", odds:{common:50,uncommon:28,rare:15,epic:6,mythic:0.9,legendary:0.1}},
+  {id:"rare", name:"Rare Box", icon:"🔵", cost:5000, costLabel:"5,000 Coins", odds:{common:20,uncommon:30,rare:35,epic:13,mythic:1.7,legendary:0.3}},
+  {id:"epic", name:"Epic Box", icon:"💜", cost:15000, costLabel:"15,000 Coins", odds:{common:5,uncommon:15,rare:30,epic:40,mythic:9,legendary:1}},
+  {id:"mythic", name:"Mythic Box", icon:"🔮", cost:50000, costLabel:"50,000 Coins", odds:{common:0,uncommon:5,rare:15,epic:35,mythic:40,legendary:5}},
+  {id:"mystery", name:"MYSTERY BOX", icon:"👑", cost:100000, costLabel:"100,000 Coins", odds:{common:0,uncommon:0,rare:10,epic:30,mythic:40,legendary:20}, mystery:true}
+];
+
+/* ---------- STATE ---------- */
+const DEFAULT_STATE = {
+  coins:0, gems:0, taps:0, combo:1, comboTimer:0,
+  luckLvl:1, tapPowerLvl:1, comboLvl:1, pityLvl:1, coinMultLvl:1,
+  pity:0, pityMax:100,
+  boxesOpened:0, legendaryFound:0, mythicFound:0,
+  owned:{}, locked:{},
+  sound:true
+};
+let state = load();
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem('taptrends_save')); return s ? Object.assign({},DEFAULT_STATE,s) : Object.assign({},DEFAULT_STATE); }
+  catch(e){ return Object.assign({},DEFAULT_STATE); }
+}
+function save(){ try{ localStorage.setItem('taptrends_save', JSON.stringify(state)); }catch(e){} }
+
+/* ---------- UPGRADE COST HELPERS ---------- */
+function costFor(base, lvl){ return Math.round(base * Math.pow(1.6, lvl-1)); }
+const UPGRADES = [
+  {key:"tapPowerLvl", label:"Tap Power", desc:"Coins per tap", base:50},
+  {key:"coinMultLvl", label:"Coin Multiplier", desc:"Boosts all coin rewards", base:100},
+  {key:"luckLvl", label:"Luck", desc:"Improves rare+ odds", base:150},
+  {key:"comboLvl", label:"Combo", desc:"Bigger combo bonus cap", base:80},
+  {key:"pityLvl", label:"Pity Reduction", desc:"Lowers pity target (min 70)", base:200}
+];
+
+/* ---------- AUDIO ---------- */
+let actx;
+function beep(freq,dur,type='sine',vol=.2){
+  if(!state.sound) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type; o.frequency.value=freq; g.gain.value=vol;
+    o.connect(g); g.connect(actx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(.001, actx.currentTime+dur);
+    o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+
+/* ---------- NAV ---------- */
+function go(s){
+  document.querySelectorAll('.screen').forEach(e=>e.classList.remove('active'));
+  document.getElementById('scr-'+s).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.s===s));
+  if(s==='boxes') renderBoxes();
+  if(s==='collection') renderCollection();
+  if(s==='upgrades') renderUpgrades();
+  if(s==='profile') renderProfile();
+}
+
+/* ---------- TAP ---------- */
+const tapbtn = document.getElementById('tapbtn');
+tapbtn.addEventListener('click', (e)=>{
+  state.taps++;
+  const power = 1 + (state.tapPowerLvl-1)*0.8;
+  const mult = 1 + (state.coinMultLvl-1)*0.25;
+  state.combo = Math.min(1 + (state.comboLvl-1)*0.3 + 4, state.combo + 0.05);
+  const gain = Math.round(power*mult*state.combo);
+  state.coins += gain;
+  spawnFx(e, "+"+gain);
+  spawnParticles(e);
+  const luckyRoll = Math.random() < 0.02 + state.luckLvl*0.002;
+  if(luckyRoll){ awardTrend(rollTrend({common:60,uncommon:25,rare:10,epic:4,mythic:0.9,legendary:0.1}), true); beep(880,.15,'square'); }
+  else beep(440+Math.random()*80,.05,'triangle',.08);
+  updateHUD();
+  clearTimeout(window._comboT);
+  window._comboT = setTimeout(()=>{ state.combo = 1; updateHUD(); }, 1500);
+  save();
+});
+function spawnFx(e, text){
+  const f = document.createElement('div');
+  f.className='fx'; f.textContent=text; f.style.color='var(--accent)';
+  const r = tapbtn.getBoundingClientRect();
+  f.style.left=(r.width/2-10)+'px'; f.style.top=(r.height/2-10)+'px';
+  tapbtn.parentElement.style.position='relative';
+  f.style.position='absolute';
+  tapbtn.parentElement.appendChild(f);
+  setTimeout(()=>f.remove(),1000);
+}
+function spawnParticles(e){
+  for(let i=0;i<6;i++){
+    const p=document.createElement('div'); p.className='particle';
+    const ang=Math.random()*Math.PI*2, dist=40+Math.random()*40;
+    p.style.setProperty('--dx', Math.cos(ang)*dist+'px');
+    p.style.setProperty('--dy', Math.sin(ang)*dist+'px');
+    p.style.left='50%'; p.style.top='50%'; p.style.position='absolute';
+    tapbtn.parentElement.appendChild(p);
+    setTimeout(()=>p.remove(),500);
+  }
+}
+
+/* ---------- TREND ROLL / AWARD ---------- */
+function rollTrend(odds){
+  const luckBoost = (state.luckLvl-1)*0.15;
+  const adj = Object.assign({},odds);
+  ['legendary','mythic','epic'].forEach(r=>{ if(adj[r]>0) adj[r]*= (1+luckBoost); });
+  const total = Object.values(adj).reduce((a,b)=>a+b,0);
+  let roll = Math.random()*total, acc=0, chosen='common';
+  for(const r of RARITIES){ acc+=adj[r]||0; if(roll<=acc){ chosen=r; break; } }
+  const pool = TRENDS.filter(t=>t.rarity===chosen);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function awardTrend(trend, silent){
+  const wasNew = !state.owned[trend.id];
+  state.owned[trend.id] = (state.owned[trend.id]||0)+1;
+  if(trend.rarity==='legendary') state.legendaryFound++;
+  if(trend.rarity==='mythic') state.mythicFound++;
+  save();
+  return wasNew;
+}
+
+/* ---------- BOXES ---------- */
+function renderBoxes(){
+  const el = document.getElementById('boxList');
+  el.innerHTML = BOXES.map(b=>{
+    const oddsStr = RARITIES.map(r=>`${RCFG[r].icon} ${b.odds[r]}%`).join('<br>');
+    const afford = state.coins >= b.cost;
+    return `<div class="boxcard ${b.mystery?'mystery':''}">
+      <div class="icon">${b.icon}</div>
+      <div><b>${b.name}</b></div>
+      <div class="odds">${oddsStr}</div>
+      <button class="btn" ${afford?'':'disabled'} onclick="openBox('${b.id}')">${b.costLabel}</button>
+    </div>`;
+  }).join('');
+}
+function openBox(id){
+  const box = BOXES.find(b=>b.id===id);
+  if(state.coins < box.cost) return;
+  state.coins -= box.cost;
+  state.boxesOpened++;
+  state.pity++;
+  let trend = rollTrend(box.odds);
+  const pityTarget = Math.max(70, 100 - (state.pityLvl-1)*10);
+  if(state.pity >= pityTarget){
+    const highPool = TRENDS.filter(t=>t.rarity==='epic'||t.rarity==='mythic'||t.rarity==='legendary');
+    trend = highPool[Math.floor(Math.random()*highPool.length)];
+    state.pity = 0;
+  }
+  runOpenAnimation(trend, box);
+  updateHUD();
+}
+function runOpenAnimation(trend, box){
+  const overlay=document.getElementById('overlay'), ob=document.getElementById('ob'),
+        oname=document.getElementById('oname'), orar=document.getElementById('orar'),
+        burst=document.getElementById('burst'), collectBtn=document.getElementById('collectBtn');
+  overlay.classList.add('show'); collectBtn.style.display='none';
+  burst.style.display='none';
+  ob.textContent=box.icon; ob.classList.add('shake'); oname.textContent=''; orar.textContent='';
+  beep(200,.3,'sawtooth',.15);
+  let ticks=0, maxTicks= 18;
+  const roulette = RARITIES;
+  const iv = setInterval(()=>{
+    ob.textContent = RCFG[roulette[ticks%roulette.length]].icon;
+    beep(300+ticks*10,.04,'square',.06);
+    ticks++;
+    if(ticks>=maxTicks){
+      clearInterval(iv);
+      ob.classList.remove('shake');
+      ob.textContent = trend.rarity==='legendary'?'👑': trend.rarity==='mythic'?'🔮': trend.rarity==='epic'?'💜': trend.rarity==='rare'?'🔵': trend.rarity==='uncommon'?'🟢':'⚪';
+      orar.textContent = RCFG[trend.rarity].label;
+      orar.style.color = RCFG[trend.rarity].color;
+      oname.textContent = trend.name;
+      const isNew = awardTrend(trend);
+      const qty = state.owned[trend.id];
+      oname.textContent += qty>1 ? ` ×${qty}` : (isNew?' (NEW!)':'');
+      const value = RCFG[trend.rarity].value;
+      const dupBonus = qty>1 ? Math.round(value*0.3) : 0;
+      state.coins += dupBonus;
+      if(trend.rarity==='legendary'||trend.rarity==='mythic'){
+        burst.style.display='block';
+        ob.style.transform='scale(1.5)';
+        document.body.style.animation='shake .4s 2';
+        beep(660,.4,'sawtooth',.25);
+      } else { beep(500,.15,'triangle',.15); ob.style.transform='scale(1.1)'; }
+      collectBtn.style.display='inline-block';
+      save(); updateHUD();
+      setTimeout(()=>{ document.body.style.animation=''; },800);
+    }
+  }, 60);
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('ob').style.transform='';
+}
+
+/* ---------- COLLECTION ---------- */
+function renderCollection(){
+  const total = TRENDS.length, disc = Object.keys(state.owned).length;
+  document.getElementById('colProgress').textContent = `${disc} / ${total}`;
+  let html='';
+  RARITIES.forEach(r=>{
+    html += `<div class="rarity-head" style="color:${RCFG[r].color}">${RCFG[r].label}</div><div class="grid">`;
+    TRENDS.filter(t=>t.rarity===r).forEach(t=>{
+      const qty = state.owned[t.id]||0;
+      const locked = !!state.locked[t.id];
+      if(qty===0){
+        html += `<div class="trend undisc"><div class="ic">❓</div><div>???</div></div>`;
+      } else {
+        html += `<div class="trend ${locked?'locked':''}" onclick="trendMenu('${t.id}')">
+          <div class="ic">${RCFG[r].icon}</div><div>${t.name}</div><div class="qty">×${qty}</div></div>`;
+      }
+    });
+    html += `</div>`;
+  });
+  document.getElementById('colList').innerHTML = html;
+}
+function trendMenu(id){
+  const t = TRENDS.find(x=>x.id===id);
+  const qty = state.owned[id]||0;
+  const locked = !!state.locked[id];
+  if(qty<=0) return;
+  const doLock = confirm(`${t.name} ×${qty} (${t.rarity})\n\nOK = ${locked?'Unlock':'Lock'} item\nCancel = sell 1 duplicate for ${RCFG[t.rarity].value} coins`);
+  if(doLock){ state.locked[id] = !locked; }
+  else {
+    if(locked){ showToast("Item is locked!"); return; }
+    if(qty>1){ state.owned[id]--; state.coins += RCFG[t.rarity].value; showToast(`Sold ${t.name} for ${RCFG[t.rarity].value} coins`); }
+    else showToast("Keep at least 1 to sell duplicates!");
+  }
+  save(); renderCollection(); updateHUD();
+}
+
+/* ---------- UPGRADES ---------- */
+function renderUpgrades(){
+  document.getElementById('upList').innerHTML = UPGRADES.map(u=>{
+    const lvl = state[u.key];
+    const cost = costFor(u.base, lvl);
+    const afford = state.coins >= cost;
+    return `<div class="up-row"><div>
+        <b>${u.label}</b><br><span style="color:var(--dim); font-size:.75rem">${u.desc} · Lv ${lvl}</span>
+      </div>
+      <button class="btn" ${afford?'':'disabled'} onclick="buyUpgrade('${u.key}')">${cost.toLocaleString()} 🪙</button>
+    </div>`;
+  }).join('');
+}
+function buyUpgrade(key){
+  const u = UPGRADES.find(x=>x.key===key);
+  const cost = costFor(u.base, state[key]);
+  if(state.coins < cost) return;
+  state.coins -= cost; state[key]++;
+  save(); renderUpgrades(); updateHUD();
+  showToast(`${u.label} upgraded to Lv ${state[key]}!`);
+}
+
+/* ---------- PROFILE ---------- */
+function renderProfile(){
+  document.getElementById('profileCard').innerHTML = `
+    <div class="row"><span>Total Taps</span><b>${state.taps.toLocaleString()}</b></div>
+    <div class="row"><span>Total Coins Earned</span><b>${state.coins.toLocaleString()}</b></div>
+    <div class="row"><span>Boxes Opened</span><b>${state.boxesOpened}</b></div>
+    <div class="row"><span>Legendary Found</span><b>${state.legendaryFound}</b></div>
+    <div class="row"><span>Mythic Found</span><b>${state.mythicFound}</b></div>
+    <div class="row"><span>Collection</span><b>${Object.keys(state.owned).length} / ${TRENDS.length}</b></div>
+  `;
+  document.getElementById('soundToggle').textContent = state.sound?'ON':'OFF';
+}
+function toggleSound(){ state.sound=!state.sound; save(); renderProfile(); }
+function resetSave(){
+  if(confirm("This will permanently erase all progress. Continue?")){
+    localStorage.removeItem('taptrends_save');
+    state = Object.assign({},DEFAULT_STATE);
+    save(); updateHUD(); go('home');
+  }
+}
+
+/* ---------- HUD ---------- */
+function updateHUD(){
+  document.getElementById('s-coins').textContent = Math.floor(state.coins).toLocaleString();
+  document.getElementById('s-gems').textContent = state.gems.toLocaleString();
+  document.getElementById('s-taps').textContent = state.taps.toLocaleString();
+  document.getElementById('s-luck').textContent = state.luckLvl;
+  document.getElementById('comboText').textContent = `Combo x${state.combo.toFixed(1)}`;
+  const pityTarget = Math.max(70, 100 - (state.pityLvl-1)*10);
+  document.getElementById('pityText').textContent = `${state.pity} / ${pityTarget}`;
+  document.getElementById('pityFill').style.width = Math.min(100,(state.pity/pityTarget)*100)+'%';
+}
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* small starter gift so free box is reachable immediately */
+if(state.taps===0 && state.coins===0) state.coins = 100;
+updateHUD();
+</script>
+</body>
+</html>
