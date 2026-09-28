@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>منيب ضد أنس وجاد</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#111;color:#fff}
+.game{max-width:900px;margin:auto;padding:12px}.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.box{background:#20242b;border:1px solid #444;border-radius:12px;padding:9px 14px;font-weight:800}
+.arena{position:relative;height:480px;border:2px solid #555;border-radius:22px;overflow:hidden;cursor:pointer;touch-action:manipulation;
+background:linear-gradient(#bfe3ff 0 72%,#7ba653 72%);user-select:none}
+.ground{position:absolute;bottom:0;height:75px;width:100%;background:#6e9449}
+.person{position:absolute;bottom:60px;width:125px;text-align:center;pointer-events:none}.mounib{left:7%}
+.targets{right:7%;display:flex;gap:20px;width:auto}.target{width:125px}
+.head{width:58px;height:58px;border-radius:50%;background:#d99a6c;border:3px solid #222;margin:auto;position:relative}
+.hair{position:absolute;left:3px;right:3px;top:-5px;height:21px;border-radius:18px 18px 7px 7px;background:#29201d}
+.body{width:78px;height:95px;border:3px solid #222;border-radius:22px 22px 10px 10px;margin:5px auto 0;position:relative;background:#2878d0}
+.target .body{background:#d94b4b}.target2 .body{background:#684bd6}
+.leg{display:inline-block;width:22px;height:55px;background:#333;border-radius:10px;margin:0 5px}
+.arm{position:absolute;width:18px;height:62px;background:#d99a6c;border:3px solid #222;border-radius:12px}
+.left{left:-14px;top:20px;transform:rotate(28deg)}
+.weapon{position:absolute;right:-2px;top:10px;width:105px;height:125px;transform-origin:9px 25px}
+.weapon .arm{right:42px;top:5px;transform:rotate(-35deg);transform-origin:top center}
+.bat{position:absolute;right:-2px;top:-10px;width:17px;height:112px;background:#8b542d;border:3px solid #4b2b18;border-radius:10px;transform:rotate(-55deg);transform-origin:bottom center}
+.weapon.swing1{animation:swing1 .34s ease-in-out}
+.weapon.swing2{animation:swing2 .32s ease-in-out}
+.weapon.swing3{animation:swing3 .30s ease-in-out}
+@keyframes swing1{0%{transform:rotate(0)}35%{transform:rotate(70deg) translate(8px,8px)}60%{transform:rotate(105deg) translate(10px,15px)}100%{transform:rotate(0)}}
+@keyframes swing2{0%{transform:rotate(0)}30%{transform:rotate(105deg) translate(12px,8px)}55%{transform:rotate(150deg) translate(15px,18px)}100%{transform:rotate(0)}}
+@keyframes swing3{0%{transform:rotate(0) scale(1)}25%{transform:rotate(125deg) translate(15px,8px) scale(1.05)}50%{transform:rotate(190deg) translate(18px,22px) scale(1.08)}100%{transform:rotate(0) scale(1)}}
+.name{font-weight:900;margin-top:4px;color:#222;text-shadow:0 1px #fff}
+.impact{position:absolute;font-size:45px;animation:boom .5s ease-out forwards;pointer-events:none}
+@keyframes boom{0%{transform:scale(.2);opacity:0}30%{transform:scale(1.35);opacity:1}100%{transform:translateY(-55px) scale(.8);opacity:0}}
+.flash{position:absolute;inset:0;background:#fff;opacity:.75;animation:fade .16s forwards;pointer-events:none}
+@keyframes fade{to{opacity:0}}.shake{animation:shake .18s}
+@keyframes shake{25%{transform:translateX(-7px) rotate(-1deg)}50%{transform:translateX(7px) rotate(1deg)}75%{transform:translateX(-4px)}}
+.shop{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.shop button{min-height:55px;border:1px solid #555;border-radius:12px;background:#20242b;color:#fff;font-weight:800}
+.info{text-align:center;font-weight:800;margin:9px}
+@media(max-width:600px){.arena{height:420px}.person{transform:scale(.78);transform-origin:bottom}.mounib{left:0}.targets{right:-8px;gap:0}.shop{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="game">
+<div class="top">
+<div class="box">⭐ نقاط: <span id="s">0</span></div>
+<div class="box">💰 فلوس: <span id="m">0</span></div>
+<div class="box">🏆 لفل: <span id="l">1</span></div>
+<div class="box">🏏 قوة: <span id="p">1</span></div>
+</div>
+
+<div class="arena" id="arena">
+<div class="ground"></div>
+
+<div class="person mounib">
+<div class="head"><div class="hair"></div></div>
+<div class="body">
+<div class="arm left"></div>
+<div class="weapon" id="weapon">
+<div class="arm"></div><div class="bat"></div>
+</div>
+</div>
+<span class="leg"></span><span class="leg"></span>
+<div class="name">منيب 🏏</div>
+</div>
+
+<div class="person targets">
+<div class="target">
+<div class="head"><div class="hair"></div></div><div class="body"></div>
+<span class="leg"></span><span class="leg"></span><div class="name">أنس</div>
+</div>
+<div class="target target2">
+<div class="head"><div class="hair"></div></div><div class="body"></div>
+<span class="leg"></span><span class="leg"></span><div class="name">جاد</div>
+</div>
+</div>
+</div>
+
+<div class="info">👆 اضغط داخل الساحة — الشطرب يتحرك حسب التطوير!</div>
+
+<div class="shop">
+<button data-cost="50" data-power="2" data-swing="swing1">🥄 شطرب خفيف<br>50💰</button>
+<button data-cost="150" data-power="4" data-swing="swing2">🏏 شطرب قوي<br>150💰</button>
+<button data-cost="400" data-power="8" data-swing="swing3">⚡ شطرب أسطوري<br>400💰</button>
+</div>
+</div>
+
+<script>
+(()=> {
+const arena=document.getElementById('arena'), weapon=document.getElementById('weapon');
+const s=document.getElementById('s'),m=document.getElementById('m'),l=document.getElementById('l'),p=document.getElementById('p');
+let score=0,money=0,level=1,power=1,swing='swing1';
+
+function update(){s.textContent=score;m.textContent=money;l.textContent=level;p.textContent=power}
+
+arena.addEventListener('pointerdown',()=>{
+ score+=power*level; money+=power;
+ if(score>=level*100){level++;money+=20}
+ update();
+
+ weapon.classList.remove('swing1','swing2','swing3');
+ void weapon.offsetWidth;
+ weapon.classList.add(swing);
+
+ arena.classList.remove('shake');void arena.offsetWidth;arena.classList.add('shake');
+
+ const flash=document.createElement('div');flash.className='flash';arena.appendChild(flash);
+ setTimeout(()=>flash.remove(),180);
+
+ ['💥','💫'].forEach((emoji,i)=>{
+   const x=document.createElement('div');x.className='impact';x.textContent=emoji;
+   x.style.left=(63+i*15)+'%';x.style.top=(43+i*5)+'%';
+   arena.appendChild(x);setTimeout(()=>x.remove(),550);
+ });
+});
+
+document.querySelectorAll('[data-cost]').forEach(btn=>{
+ btn.addEventListener('click',e=>{
+   e.stopPropagation();
+   const cost=+btn.dataset.cost;
+   if(money>=cost){
+     money-=cost;power=+btn.dataset.power;swing=btn.dataset.swing;update();
+     weapon.classList.remove('swing1','swing2','swing3');void weapon.offsetWidth;weapon.classList.add(swing);
+   }else{
+     const old=btn.innerHTML;btn.innerHTML='❌ فلوس غير كافية';
+     setTimeout(()=>btn.innerHTML=old,700);
+   }
+ });
+});
+update();
+})();
+</script>
+</body>
+</html>
